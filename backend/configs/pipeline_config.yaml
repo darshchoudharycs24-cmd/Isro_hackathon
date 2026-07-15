@@ -1,0 +1,97 @@
+# ============================================================
+# ISRO Cloud Removal Pipeline - Configuration
+# ============================================================
+
+pipeline:
+  name: "LISS-IV Preprocessing Pipeline"
+  version: "1.0.0"
+
+# ─── I/O ────────────────────────────────────────────────────
+paths:
+  data_root: "backend/data"
+  current_dir: "backend/data/current"
+  historical_dir: "backend/data/historical"
+  sar_dir: "backend/data/sar"
+  output_dir: "backend/data/output"
+  preview_dir: "backend/data/output/previews"
+
+# ─── Calibration ────────────────────────────────────────────
+calibration:
+  # DN to reflectance scale/offset (placeholder values; override with actual metadata)
+  gain: 0.0001
+  offset: 0.0
+  clip_min: 0.0
+  clip_max: 1.0
+  noise_reduction:
+    enabled: true
+    method: "gaussian"   # gaussian | median | bilateral
+    sigma: 1.0
+
+# ─── Resampling ─────────────────────────────────────────────
+resampling:
+  method: "bilinear"      # nearest | bilinear | cubic
+  target_resolution: null  # null = use current image resolution
+
+# ─── Normalization ──────────────────────────────────────────
+normalization:
+  method: "minmax"        # minmax | meanstd | none
+  clip_percentile: [2, 98]  # percentile clipping before normalization
+
+# ─── Geometric Alignment ────────────────────────────────────
+alignment:
+  detector: "orb"         # orb | sift
+  max_features: 5000
+  match_ratio: 0.75
+  min_match_count: 10
+  ecc_fallback: true
+  ecc_iterations: 200
+  ecc_epsilon: 1.0e-5
+  warp_mode: "homography"  # homography | affine
+
+# ─── Patch Selector ─────────────────────────────────────────
+patch_selector:
+  weights:
+    date_score: 0.25
+    ssim_score: 0.35
+    histogram_score: 0.25
+    feature_score: 0.15
+  max_date_diff_days: 365
+
+# ─── SAR Fusion ─────────────────────────────────────────────
+sar:
+  normalize: true
+  align_to_current: true
+
+# ─── Feature Fusion ─────────────────────────────────────────
+fusion:
+  method: "channel_stack"  # channel_stack | weighted_average | laplacian_pyramid
+  weights:
+    current: 0.5
+    historical: 0.5
+
+# ─── Output ─────────────────────────────────────────────────
+output:
+  patch_size: 1024
+  export_png: true
+  export_npy: true
+  png_channels: [0, 1, 2]   # band indices for RGB export
+
+# ─── Logging ────────────────────────────────────────────────
+logging:
+  level: "INFO"
+  log_file: "backend/data/output/pipeline.log"
+
+# ─── Band Selection (Task 10) ────────────────────────────────
+# Configure which bands map to which roles (1-based index).
+# Comment out entire section to use all bands as-is.
+# Example for LISS-IV (R=3, G=2, B=1):
+bands:
+  red: 3
+  green: 2
+  blue: 1
+  # nir: 4   # uncomment if 4-band image
+
+# ─── Cache (Task 7) ─────────────────────────────────────────
+cache:
+  dir: ".cache"
+  max_age_seconds: 604800  # 7 days
