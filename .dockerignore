@@ -1,0 +1,7 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+backend/data/output/*
+*.ipynb_checkpoints
