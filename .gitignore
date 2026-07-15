@@ -1,0 +1,21 @@
+# Python environment
+venv/
+__pycache__/
+*.pyc
+evaluation/__pycache__/
+
+# Large model checkpoints (regenerate via training, don't push to git)
+pytorch-CycleGAN-and-pix2pix/checkpoints/
+
+# Training datasets (large, download separately)
+pytorch-CycleGAN-and-pix2pix/datasets/
+raw_data/
+
+# Generated outputs (can be large, regenerate by running scripts)
+outputs/*.png
+!outputs/.gitkeep
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
