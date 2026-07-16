@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+
+# Model weights
+*.pth
+*.pt
+
+# Optional
+.vscode/
+.env
