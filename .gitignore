@@ -62,3 +62,4 @@ outputs/*.png
 .DS_Store
 Thumbs.db
 .vscode/
+pytorch-CycleGAN-and-pix2pix/
