@@ -63,3 +63,7 @@ outputs/*.png
 Thumbs.db
 .vscode/
 pytorch-CycleGAN-and-pix2pix/
+
+backend/data/historical_library/
+
+backend/data/historical_empty/

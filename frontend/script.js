@@ -1,10 +1,17 @@
 // ======================================================
 // CloudClear AI Dashboard
-// Part 1
 // ======================================================
 
 const imageInput = document.getElementById("imageInput");
 const chooseImage = document.getElementById("chooseImage");
+
+const historicalInput = document.getElementById("historicalInput");
+const chooseHistorical = document.getElementById("chooseHistorical");
+const dropAreaHistorical = document.getElementById("dropAreaHistorical");
+
+const modeReference = document.getElementById("modeReference");
+const modeHybrid = document.getElementById("modeHybrid");
+
 const processBtn = document.getElementById("processBtn");
 const resetBtn = document.getElementById("resetBtn");
 
@@ -12,51 +19,104 @@ const progressFill = document.getElementById("progressFill");
 const progressText = document.getElementById("progressText");
 
 const consoleLogs = document.getElementById("consoleLogs");
-
 const loadingOverlay = document.getElementById("loadingOverlay");
-
 const toast = document.getElementById("toast");
-
 const originalPreview = document.getElementById("originalPreview");
-
 const placeholders = document.querySelectorAll(".placeholder");
 
+const beforeCompare = document.getElementById("beforeCompare");
+const afterCompare = document.getElementById("afterCompare");
+const comparisonPlaceholders = document.querySelectorAll(".comparisonContainer .placeholder");
+
+let currentMode = "reference";
+
 // ======================================================
-// Open File Picker
+// Mode Toggle
 // ======================================================
 
-chooseImage.addEventListener("click", () => {
+modeReference.addEventListener("click", () => {
+    currentMode = "reference";
+    modeReference.classList.add("modeActive");
+    modeHybrid.classList.remove("modeActive");
+    dropAreaHistorical.style.display = "block";
+});
 
-    imageInput.click();
-
+modeHybrid.addEventListener("click", () => {
+    currentMode = "hybrid";
+    modeHybrid.classList.add("modeActive");
+    modeReference.classList.remove("modeActive");
+    dropAreaHistorical.style.display = "none";
+    toastMessage("Single-image mode selected — no historical reference needed.");
 });
 
 // ======================================================
-// Image Preview
+// Open File Pickers
+// ======================================================
+
+chooseImage.addEventListener("click", () => {
+    imageInput.click();
+});
+
+chooseHistorical.addEventListener("click", () => {
+    historicalInput.click();
+});
+
+// ======================================================
+// Inline thumbnail preview helper
+// ======================================================
+
+function showThumbnailInUploadArea(dropAreaEl, dataUrl) {
+    let thumb = dropAreaEl.querySelector(".uploadThumb");
+    if (!thumb) {
+        thumb = document.createElement("img");
+        thumb.className = "uploadThumb";
+        thumb.style.maxWidth = "100%";
+        thumb.style.maxHeight = "180px";
+        thumb.style.borderRadius = "14px";
+        thumb.style.marginTop = "15px";
+        dropAreaEl.appendChild(thumb);
+    }
+    thumb.src = dataUrl;
+    thumb.style.display = "block";
+}
+
+// ======================================================
+// Image Preview (current)
 // ======================================================
 
 imageInput.addEventListener("change", function () {
-
     const file = this.files[0];
-
     if (!file) return;
-
     const reader = new FileReader();
-
     reader.onload = function (e) {
-
         originalPreview.src = e.target.result;
-
         originalPreview.style.display = "block";
-
         placeholders[0].style.display = "none";
 
+        showThumbnailInUploadArea(dropArea, e.target.result);
+
+        beforeCompare.src = e.target.result;
+        beforeCompare.style.display = "block";
+        comparisonPlaceholders[0].style.display = "none";
+
         toastMessage("Image Loaded Successfully");
-
-    }
-
+    };
     reader.readAsDataURL(file);
+});
 
+// ======================================================
+// Image Preview (historical)
+// ======================================================
+
+historicalInput.addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        showThumbnailInUploadArea(dropAreaHistorical, e.target.result);
+        toastMessage("Historical Reference Loaded");
+    };
+    reader.readAsDataURL(file);
 });
 
 // ======================================================
@@ -64,17 +124,9 @@ imageInput.addEventListener("change", function () {
 // ======================================================
 
 function toastMessage(message){
-
     toast.innerHTML = message;
-
     toast.style.display = "block";
-
-    setTimeout(()=>{
-
-        toast.style.display="none";
-
-    },3000);
-
+    setTimeout(()=>{ toast.style.display="none"; },3000);
 }
 
 // ======================================================
@@ -82,151 +134,112 @@ function toastMessage(message){
 // ======================================================
 
 function addLog(message){
-
-    consoleLogs.innerHTML +=
-
-    "<br>▶ " + message;
-
+    consoleLogs.innerHTML += "<br>▶ " + message;
     consoleLogs.scrollTop = consoleLogs.scrollHeight;
-
 }
 
 // ======================================================
 // Loading
 // ======================================================
 
-function showLoading(){
+function showLoading(){ loadingOverlay.style.display="flex"; }
+function hideLoading(){ loadingOverlay.style.display="none"; }
 
-    loadingOverlay.style.display="flex";
-
-}
-
-function hideLoading(){
-
-    loadingOverlay.style.display="none";
-
-}
-
-// ======================================================
-// Fake Progress Animation
-// ======================================================
-
-function animateProgress(){
-
-    progressFill.style.width="0%";
-
-    let progress=0;
-
-    progressText.innerHTML="Initializing...";
-
-    const timer=setInterval(()=>{
-
-        progress++;
-
-        progressFill.style.width=progress+"%";
-
-        if(progress<20){
-
-            progressText.innerHTML="Uploading Image...";
-
-        }
-
-        else if(progress<40){
-
-            progressText.innerHTML="Detecting Clouds...";
-
-        }
-
-        else if(progress<60){
-
-            progressText.innerHTML="Running AI Reconstruction...";
-
-        }
-
-        else if(progress<80){
-
-            progressText.innerHTML="Generating Confidence Map...";
-
-        }
-
-        else{
-
-            progressText.innerHTML="Preparing Results...";
-
-        }
-
-        if(progress>=100){
-
-            clearInterval(timer);
-
-            progressText.innerHTML="Completed";
-
-            hideLoading();
-
-            toastMessage("Processing Complete");
-
-        }
-
-    },35);
-
-}
 // ======================================================
 // PROCESS BUTTON
 // ======================================================
 
-processBtn.addEventListener("click", () => {
+processBtn.addEventListener("click", async () => {
 
-    
     if (!imageInput.files.length) {
-
-        toastMessage("Please choose an image first.");
-
+        toastMessage("Please choose a cloudy satellite image first.");
         return;
-
+    }
+    if (currentMode === "reference" && !historicalInput.files.length) {
+        toastMessage("Reference mode needs a historical image — or switch to Single-Image AI mode.");
+        return;
     }
 
     consoleLogs.innerHTML = "";
-
     showLoading();
 
-    animateProgress();
+    const steps = currentMode === "reference"
+        ? ["Uploading images...", "Generating cloud mask...", "Cloning reference pixels...", "Computing metrics..."]
+        : ["Uploading image...", "Generating cloud mask...", "Running GAN reconstruction...", "Computing metrics..."];
 
-    const steps = [
+    let i = 0;
+    progressFill.style.width = "0%";
+    const logTimer = setInterval(() => {
+        if (i < steps.length) {
+            addLog(steps[i]);
+            progressText.innerHTML = steps[i];
+            progressFill.style.width = Math.round(((i + 1) / steps.length) * 90) + "%";
+            i++;
+        }
+    }, 500);
 
-        "Uploading satellite image...",
+    try {
+        const formData = new FormData();
+        formData.append("current", imageInput.files[0]);
+        formData.append("mode", currentMode);
+        if (historicalInput.files.length) {
+            formData.append("historical", historicalInput.files[0]);
+        }
 
-        "Performing radiometric preprocessing...",
+        const response = await fetch("http://127.0.0.1:8000/predict", {
+            method: "POST",
+            body: formData,
+        });
 
-        "Running cloud detection model...",
+        const result = await response.json();
+        clearInterval(logTimer);
 
-        "Generating cloud mask...",
+        if (result.error) {
+            addLog("Error: " + result.error);
+            toastMessage("Processing failed — see console log.");
+            hideLoading();
+            return;
+        }
 
-        "Selecting historical cloud-free imagery...",
+        const maskPreview = document.getElementById("maskPreview");
+        const outputPreview = document.getElementById("outputPreview");
+        const confidencePreview = document.getElementById("confidencePreview");
 
-        "Running AI reconstruction model...",
+        maskPreview.src = result.cloud_mask;
+        maskPreview.style.display = "block";
 
-        "Generating confidence map...",
+        outputPreview.src = result.reconstructed;
+        outputPreview.style.display = "block";
 
-        "Calculating PSNR, SSIM, RMSE & SAM...",
+        confidencePreview.src = result.confidence;
+        confidencePreview.style.display = "block";
 
-        "Preparing downloadable outputs..."
+        placeholders[1].style.display = "none";
+        placeholders[2].style.display = "none";
+        placeholders[3].style.display = "none";
 
-    ];
+        // Populate Before/After comparison section
+        afterCompare.src = result.reconstructed;
+        afterCompare.style.display = "block";
+        comparisonPlaceholders[1].style.display = "none";
 
-    let delay = 500;
+        document.getElementById("psnrValue").innerHTML = result.metrics.psnr;
+        document.getElementById("ssimValue").innerHTML = result.metrics.ssim;
+        document.getElementById("rmseValue").innerHTML = result.metrics.rmse;
+        document.getElementById("samValue").innerHTML = result.metrics.sam;
 
-    steps.forEach((step) => {
-
-        setTimeout(() => {
-
-            addLog(step);
-
-        }, delay);
-
-        delay += 900;
-
-    });
-
+        addLog("Mode: " + result.mode);
+        progressFill.style.width = "100%";
+        progressText.innerHTML = "Completed";
+        addLog("Done.");
+        hideLoading();
+        toastMessage("Processing Complete");
+    } catch (err) {
+        clearInterval(logTimer);
+        addLog("Error: " + err.message);
+        toastMessage("Could not reach backend — is api_server.py running?");
+        hideLoading();
+    }
 });
 
 // ======================================================
@@ -234,57 +247,77 @@ processBtn.addEventListener("click", () => {
 // ======================================================
 
 resetBtn.addEventListener("click", () => {
-
     imageInput.value = "";
+    historicalInput.value = "";
 
     originalPreview.src = "";
-
     originalPreview.style.display = "none";
 
-    placeholders[0].style.display = "flex";
+    document.getElementById("maskPreview").style.display = "none";
+    document.getElementById("outputPreview").style.display = "none";
+    document.getElementById("confidencePreview").style.display = "none";
+
+    const thumbs = document.querySelectorAll(".uploadThumb");
+    thumbs.forEach(t => t.remove());
+
+    beforeCompare.src = "";
+    beforeCompare.style.display = "none";
+    afterCompare.src = "";
+    afterCompare.style.display = "none";
+
+    placeholders.forEach(p => p.style.display = "flex");
+    comparisonPlaceholders.forEach(p => p.style.display = "flex");
 
     progressFill.style.width = "0%";
-
     progressText.innerHTML = "Waiting for image...";
-
     consoleLogs.innerHTML = "Ready.";
 
-    toastMessage("Dashboard Reset");
+    document.getElementById("psnrValue").innerHTML = "--";
+    document.getElementById("ssimValue").innerHTML = "--";
+    document.getElementById("rmseValue").innerHTML = "--";
+    document.getElementById("samValue").innerHTML = "--";
 
+    toastMessage("Dashboard Reset");
 });
 
 // ======================================================
-// DRAG & DROP
+// DRAG & DROP (current image)
 // ======================================================
 
 const dropArea = document.getElementById("dropArea");
 
 dropArea.addEventListener("dragover", (e) => {
-
     e.preventDefault();
-
     dropArea.style.borderColor = "#00C2FF";
-
 });
-
 dropArea.addEventListener("dragleave", () => {
-
     dropArea.style.borderColor = "rgba(0,194,255,.35)";
-
+});
+dropArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropArea.style.borderColor = "rgba(0,194,255,.35)";
+    if (e.dataTransfer.files.length === 0) return;
+    imageInput.files = e.dataTransfer.files;
+    imageInput.dispatchEvent(new Event("change"));
 });
 
-dropArea.addEventListener("drop", (e) => {
+// ======================================================
+// DRAG & DROP (historical image)
+// ======================================================
 
+dropAreaHistorical.addEventListener("dragover", (e) => {
     e.preventDefault();
-
-    dropArea.style.borderColor = "rgba(0,194,255,.35)";
-
+    dropAreaHistorical.style.borderColor = "#00C2FF";
+});
+dropAreaHistorical.addEventListener("dragleave", () => {
+    dropAreaHistorical.style.borderColor = "rgba(0,194,255,.35)";
+});
+dropAreaHistorical.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropAreaHistorical.style.borderColor = "rgba(0,194,255,.35)";
     if (e.dataTransfer.files.length === 0) return;
-
-    imageInput.files = e.dataTransfer.files;
-
-    imageInput.dispatchEvent(new Event("change"));
-
+    historicalInput.files = e.dataTransfer.files;
+    historicalInput.dispatchEvent(new Event("change"));
 });
 
 // ======================================================
@@ -292,74 +325,41 @@ dropArea.addEventListener("drop", (e) => {
 // ======================================================
 
 window.addEventListener("scroll", () => {
-
     const nav = document.querySelector("nav");
-
     if (window.scrollY > 60) {
-
         nav.style.background = "rgba(5,15,30,.92)";
-
     } else {
-
         nav.style.background = "rgba(5,15,30,.65)";
-
     }
-
 });
 
 // ======================================================
 // DOWNLOAD BUTTONS
 // ======================================================
 
-document.querySelectorAll(".downloadButton").forEach(button => {
-
+document.querySelectorAll(".downloadButton").forEach((button, idx) => {
     button.addEventListener("click", () => {
-
-        toastMessage("Download will be enabled after backend integration.");
-
+        const map = {
+            0: originalPreview,
+            1: document.getElementById("maskPreview"),
+            2: document.getElementById("outputPreview"),
+            3: document.getElementById("confidencePreview"),
+        };
+        const img = map[idx];
+        if (!img || !img.src) {
+            toastMessage("Nothing to download yet — process an image first.");
+            return;
+        }
+        const a = document.createElement("a");
+        a.href = img.src;
+        a.download = ["original", "cloud_mask", "reconstructed", "confidence"][idx] + ".png";
+        a.click();
     });
-
 });
-
-// ======================================================
-// FASTAPI TEMPLATE
-// (Enable later)
-// ======================================================
-
-/*
-
-processBtn.addEventListener("click", async () => {
-
-    if (!imageInput.files.length) return;
-
-    const formData = new FormData();
-
-    formData.append("file", imageInput.files[0]);
-
-    const response = await fetch("http://127.0.0.1:8000/predict", {
-
-        method: "POST",
-
-        body: formData
-
-    });
-
-    const result = await response.json();
-
-    document.getElementById("maskPreview").src = result.cloud_mask;
-
-    document.getElementById("outputPreview").src = result.reconstructed;
-
-    document.getElementById("confidencePreview").src = result.confidence;
-
-});
-
-*/
 
 // ======================================================
 // INITIALIZE
 // ======================================================
 
 consoleLogs.innerHTML = "Ready.";
-
 progressText.innerHTML = "Waiting for image...";
