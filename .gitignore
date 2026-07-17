@@ -1,3 +1,13 @@
+__pycache__/
+*.pyc
+
+# Model weights
+*.pth
+*.pt
+
+# Optional
+.vscode/
+.env
 # Python
 __pycache__/
 *.pyc
@@ -30,3 +40,33 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Python environment
+venv/
+__pycache__/
+*.pyc
+evaluation/__pycache__/
+
+# Large model checkpoints (regenerate via training, don't push to git)
+pytorch-CycleGAN-and-pix2pix/checkpoints/
+
+# Training datasets (large, download separately)
+pytorch-CycleGAN-and-pix2pix/datasets/
+raw_data/
+
+# Generated outputs (can be large, regenerate by running scripts)
+outputs/*.png
+!outputs/.gitkeep
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+pytorch-CycleGAN-and-pix2pix/
+
+backend/data/historical_library/
+
+backend/data/historical_empty/
+
+__pycache__/
+*.pyc
