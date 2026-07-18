@@ -186,10 +186,12 @@ processBtn.addEventListener("click", async () => {
             formData.append("historical", historicalInput.files[0]);
         }
 
-        const response = await fetch("http://127.0.0.1:8000/predict", {
-            method: "POST",
-            body: formData,
-        });
+       const API_URL = "https://isro-hackathon-mqkl.onrender.com";
+
+const response = await fetch(`${API_URL}/predict`, {
+    method: "POST",
+    body: formData,
+});
 
         const result = await response.json();
         clearInterval(logTimer);
